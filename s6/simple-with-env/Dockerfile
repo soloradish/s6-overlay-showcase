@@ -1,10 +1,16 @@
-# Use your favorite image
+FROM golang:1.20.5 as builder
+WORKDIR /src
+COPY . .
+RUN CGO_ENABLED=0 go build -o /app/s6-overlay-showcase
+
+
 FROM alpine:latest
 ARG S6_OVERLAY_VERSION=3.1.5.0
 ARG TARGETARCH
 
 RUN apk add xz   
-COPY .targets/s6-overlay-showcase /app/s6-overlay-showcase
+COPY --from=builder /app/s6-overlay-showcase /app/s6-overlay-showcase
+
 COPY s6/simple-with-env/run /etc/services.d/s6-overlay-showcase/run
 COPY s6/env /env
 
