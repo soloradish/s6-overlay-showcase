@@ -11,15 +11,11 @@ env:
   IMAGE_NAME: s6-overlay-showcase
 
 jobs:
-  deploy:
+  docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-
-      - name: Build application
-        run: |
-          make build
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
