@@ -57,23 +57,28 @@ jobs:
         with:
           version: 'v3.12.0'
 
-      - name: Install Helm chart-releaser
-        env:
-          CR_VERSION: "1.5.0"
-        run: |
-          wget -q "https://github.com/helm/chart-releaser/releases/download/v${CR_VERSION}/chart-releaser_${CR_VERSION}_linux_amd64.tar.gz"
-          tar -xzf "chart-releaser_${CR_VERSION}_linux_amd64.tar.gz"
-          sudo mv cr /usr/local/bin
-
-      - name: Release Helm chart
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.5.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        run: |
-          if [[ "${GITHUB_REF}" == "refs/heads/master" ]]; then
-            version="latest"
-          else
-            version="${GITHUB_REF#refs/tags/v}"
-          fi
-          cr package chart/s6-overlay-showcase --version "$version"
-          cr upload
-          cr index
+
+      # - name: Install Helm chart-releaser
+      #   env:
+      #     CR_VERSION: "1.5.0"
+      #   run: |
+      #     wget -q "https://github.com/helm/chart-releaser/releases/download/v${CR_VERSION}/chart-releaser_${CR_VERSION}_linux_amd64.tar.gz"
+      #     tar -xzf "chart-releaser_${CR_VERSION}_linux_amd64.tar.gz"
+      #     sudo mv cr /usr/local/bin
+
+      # - name: Release Helm chart
+      #   env:
+      #     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      #   run: |
+      #     if [[ "${GITHUB_REF}" == "refs/heads/master" ]]; then
+      #       version="latest"
+      #     else
+      #       version="${GITHUB_REF#refs/tags/v}"
+      #     fi
+      #     cr package chart/s6-overlay-showcase --version "$version"
+      #     cr upload
+      #     cr index
