@@ -1,2 +1,3 @@
 #!/command/execlineb -P
+# s6-setuidgid root
 s6-envdir /env /app/s6-overlay-showcase

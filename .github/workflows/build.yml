@@ -1,0 +1,79 @@
+name: Docker
+
+on:
+  push:
+    # branches:
+    #   - master # Set a branch to trigger deployment
+    # - gh-action
+    tags:
+      - v* # Push events to matching v*, i.e. v1.0, v20.15.10
+
+env:
+  IMAGE_NAME: s6-overlay-showcase
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1 
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Set version
+        run: echo "APP_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Metadata for tag
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+
+      - name: Helm package
+        run: |
+          helm package charts/s6-overlay-showcase --dependency-update --destination target --app-version $APP_VERSION
+          ls -l target
+
+      - name: Push Helm charts
+        run: |
+          shopt -s nullglob
+          for chart in target/*.tgz; do
+            helm push $chart oci://ghcr.io/${{ github.repository_owner }}/s6-overlay-showcase-charts
+          done
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: s6/simple-with-env/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
