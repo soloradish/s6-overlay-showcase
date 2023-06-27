@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master # Set a branch to trigger deployment
+      - gh-action
     tags:
       - v* # Push events to matching v*, i.e. v1.0, v20.15.10
 
@@ -72,9 +73,20 @@ jobs:
         with:
           version: 'v3.12.0'
 
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.5.0
-        with:
-          charts_dir: charts
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Helm package
+        run: |
+          helm package charts/s6-overlay-showcase --dependency-update --destination target
+          echo "RELEASE_TAG=${CHART}-${VERSION}" >> $GITHUB_ENV
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login https://ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # - name: Push chart to ghcr
+      #   run: |
+      #     helm push target/s6-overlay-showcase-$${CHART}{VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/s6-overlay-showcase-charts
+      - name: Push Helm charts
+        run: |
+          for chart in .target/*.tgz; do
+            helm push $chart ghcr.io/${{ github.repository_owner }}/s6-overlay-showcase-charts
+          done
