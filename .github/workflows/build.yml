@@ -2,14 +2,11 @@ name: Docker
 
 on:
   push:
-    branches:
-      - master # Set a branch to trigger deployment
-      - gh-action
+    # branches:
+    #   - master # Set a branch to trigger deployment
+    # - gh-action
     tags:
       - v* # Push events to matching v*, i.e. v1.0, v20.15.10
-
-# permissions:
-#   contents: write
 
 env:
   IMAGE_NAME: s6-overlay-showcase
@@ -44,17 +41,8 @@ jobs:
         with:
           version: 'v3.12.0'
 
-      - name: Helm package
-        run: |
-          helm package charts/s6-overlay-showcase --dependency-update --destination target
-          ls -l target
-
-      - name: Push Helm charts
-        run: |
-          shopt -s nullglob
-          for chart in target/*.tgz; do
-            helm push $chart oci://ghcr.io/${{ github.repository_owner }}/s6-overlay-showcase-charts
-          done
+      - name: Set version
+        run: echo "APP_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
       - name: Metadata for tag
         id: meta
@@ -65,6 +53,18 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
             type=semver,pattern={{version}}
+
+      - name: Helm package
+        run: |
+          helm package charts/s6-overlay-showcase --dependency-update --destination target --app-version $APP_VERSION
+          ls -l target
+
+      - name: Push Helm charts
+        run: |
+          shopt -s nullglob
+          for chart in target/*.tgz; do
+            helm push $chart oci://ghcr.io/${{ github.repository_owner }}/s6-overlay-showcase-charts
+          done
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
