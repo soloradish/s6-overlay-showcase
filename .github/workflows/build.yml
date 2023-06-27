@@ -39,6 +39,23 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Helm package
+        run: |
+          helm package charts/s6-overlay-showcase --dependency-update --destination target
+          ls -l target
+
+      - name: Push Helm charts
+        run: |
+          shopt -s nullglob
+          for chart in target/*.tgz; do
+            helm push $chart oci://ghcr.io/${{ github.repository_owner }}/s6-overlay-showcase-charts
+          done
+
       - name: Metadata for tag
         id: meta
         uses: docker/metadata-action@v3
@@ -60,34 +77,3 @@ jobs:
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
-
-  # helm-chart:
-  #   runs-on: ubuntu-latest
-  #   steps:
-      # - name: Checkout
-      #   uses: actions/checkout@v2
-      #   with:
-      #     fetch-depth: 0 
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: 'v3.12.0'
-
-      - name: Helm package
-        run: |
-          helm package charts/s6-overlay-showcase --dependency-update --destination target
-          echo "RELEASE_TAG=${CHART}-${VERSION}" >> $GITHUB_ENV
-
-      - name: Login to GitHub Container Registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login https://ghcr.io -u ${{ github.actor }} --password-stdin
-
-      # - name: Push chart to ghcr
-      #   run: |
-      #     helm push target/s6-overlay-showcase-$${CHART}{VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/s6-overlay-showcase-charts
-      - name: Push Helm charts
-        run: |
-          shopt -s nullglob
-          for chart in target/*.tgz; do
-            helm push $chart oci://ghcr.io/${{ github.repository_owner }}/s6-overlay-showcase-charts
-          done
