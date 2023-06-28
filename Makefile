@@ -20,3 +20,5 @@ docker_build:
 	@echo "  >  Building docker image..."
 	@docker build -f s6/simple-with-env/Dockerfile -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
 
+	@echo "  >  Building docker image..."
+	@docker build -f non-s6/simple-with-env/Dockerfile -t $(DOCKER_IMAGE_NAME)-non-s6:$(DOCKER_IMAGE_TAG) .
